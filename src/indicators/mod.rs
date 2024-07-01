@@ -4,8 +4,8 @@ pub use self::exponential_moving_average::ExponentialMovingAverage;
 mod double_exponential_moving_average;
 pub use self::double_exponential_moving_average::DoubleExponentialMovingAverage;
 
-mod triple_exponential_average;
-pub use self::triple_exponential_average::TripleExponentialAverage;
+// mod triple_exponential_average;
+// pub use self::triple_exponential_average::TripleExponentialAverage;
 
 mod weighted_moving_average;
 pub use self::weighted_moving_average::WeightedMovingAverage;
