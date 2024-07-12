@@ -157,32 +157,32 @@ mod tests {
 
     #[test]
     fn test_next() {
-        let mut ema = DoubleExponentialMovingAverage::new(3).unwrap();
+        let mut dema = DoubleExponentialMovingAverage::new(3).unwrap();
 
-        assert_eq!(ema.next(2.0), 2.0);
-        assert_eq!(ema.next(5.0), 4.25);
-        assert_eq!(ema.next(1.0), 2.0);
-        assert_eq!(ema.next(6.25), 5.125);
+        assert_eq!(dema.next(2.0), 2.0);
+        assert_eq!(dema.next(5.0), 4.25);
+        assert_eq!(dema.next(1.0), 2.0);
+        assert_eq!(dema.next(6.25), 5.125);
 
-        let mut ema = DoubleExponentialMovingAverage::new(3).unwrap();
+        let mut dema = DoubleExponentialMovingAverage::new(3).unwrap();
         let bar1 = Bar::new().close(2);
         let bar2 = Bar::new().close(5);
-        assert_eq!(ema.next(&bar1), 2.0);
-        assert_eq!(ema.next(&bar2), 4.25);
+        assert_eq!(dema.next(&bar1), 2.0);
+        assert_eq!(dema.next(&bar2), 4.25);
     }
 
     #[test]
     fn test_reset() {
-        let mut ema = DoubleExponentialMovingAverage::new(5).unwrap();
+        let mut dema = DoubleExponentialMovingAverage::new(5).unwrap();
 
-        assert_eq!(ema.next(4.0), 4.0);
-        ema.next(10.0);
-        ema.next(15.0);
-        ema.next(20.0);
-        assert_ne!(ema.next(4.0), 4.0);
+        assert_eq!(dema.next(4.0), 4.0);
+        dema.next(10.0);
+        dema.next(15.0);
+        dema.next(20.0);
+        assert_ne!(dema.next(4.0), 4.0);
 
-        ema.reset();
-        assert_eq!(ema.next(4.0), 4.0);
+        dema.reset();
+        assert_eq!(dema.next(4.0), 4.0);
     }
 
     #[test]
@@ -192,7 +192,7 @@ mod tests {
 
     #[test]
     fn test_display() {
-        let ema = DoubleExponentialMovingAverage::new(7).unwrap();
-        assert_eq!(format!("{}", ema), "DEMA(7)");
+        let dema = DoubleExponentialMovingAverage::new(7).unwrap();
+        assert_eq!(format!("{}", dema), "DEMA(7)");
     }
 }
