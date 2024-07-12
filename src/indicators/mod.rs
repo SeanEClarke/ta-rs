@@ -4,8 +4,8 @@ pub use self::exponential_moving_average::ExponentialMovingAverage;
 mod double_exponential_moving_average;
 pub use self::double_exponential_moving_average::DoubleExponentialMovingAverage;
 
-mod triple_exponential_average;
-pub use self::triple_exponential_average::TripleExponentialAverage;
+mod triple_exponential_moving_average;
+pub use self::triple_exponential_moving_average::TripleExponentialAverage;
 
 mod weighted_moving_average;
 pub use self::weighted_moving_average::WeightedMovingAverage;
@@ -73,3 +73,6 @@ pub use self::money_flow_index::MoneyFlowIndex;
 
 mod on_balance_volume;
 pub use self::on_balance_volume::OnBalanceVolume;
+
+mod volume_weighted_average_price;
+pub use self::volume_weighted_average_price::VolumeWeightedAveragePrice;
