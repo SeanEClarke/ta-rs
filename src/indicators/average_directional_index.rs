@@ -63,7 +63,7 @@ pub struct AverageDirectionalIndexOutput {
 }
 
 impl AverageDirectionalIndex {
-    fn new(period: u8) -> Self {
+    pub fn new(period: u8) -> Self {
         AverageDirectionalIndex {
             period,
             firstval: false,
