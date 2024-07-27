@@ -1,3 +1,6 @@
+mod average_directional_index;
+pub use self::average_directional_index::AverageDirectionalIndex;
+
 mod exponential_moving_average;
 pub use self::exponential_moving_average::ExponentialMovingAverage;
 
