@@ -57,9 +57,9 @@ impl fmt::Display for AverageDirectionalIndex {
 }
 
 pub struct AverageDirectionalIndexOutput {
-    adx: f64,
-    di_plus: f64,
-    di_minus: f64,
+    pub adx: f64,
+    pub di_plus: f64,
+    pub di_minus: f64,
 }
 
 impl AverageDirectionalIndex {
