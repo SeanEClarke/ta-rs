@@ -1,6 +1,6 @@
 use super::{Close, High, Low, Open, Volume};
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Default, Debug, PartialEq)]
 pub struct Bar {
     open: f64,
     high: f64,

@@ -6,35 +6,11 @@ use crate::{Close, High, Low, Next, Reset, Volume};
 #[cfg(feature = "serde")]
 use serde::{Deserialize, Serialize};
 
-struct OHLC {
-    high_price: f64,
-    low_price: f64,
-    close_price: f64,
-}
-
-impl High for OHLC {
-    fn high(&self) -> f64 {
-        self.high_price
-    }
-}
-
-impl Low for OHLC {
-    fn low(&self) -> f64 {
-        self.low_price
-    }
-}
-
-impl Close for OHLC {
-    fn close(&self) -> f64 {
-        self.close_price
-    }
-}
-
-pub struct AverageDirectionalIndex {
+pub struct AverageDirectionalIndex<T: High + Low + Close> {
     period: u8,
-    firstval: bool,
-    secondval: bool,
-    ohlc_container: VecDeque<OHLC>,
+    first_val: bool,
+    second_val: bool,
+    hlc_container: VecDeque<T>,
     adx_container: VecDeque<f64>,
     prev_tr: f64,
     prev_pdm: f64,
@@ -43,14 +19,11 @@ pub struct AverageDirectionalIndex {
     mdi: f64,
     dx: f64,
     p_adx: f64,
-    // m_pohlc: OHLC,
-    previous_high: f64,
-    previous_low: f64,
-    previous_close: f64,
+    p_hlc: T,
     true_range: TrueRange,
 }
 
-impl fmt::Display for AverageDirectionalIndex {
+impl<T: High + Low + Close> fmt::Display for AverageDirectionalIndex<T> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "ADX({})", self.period)
     }
@@ -62,13 +35,13 @@ pub struct AverageDirectionalIndexOutput {
     pub di_minus: f64,
 }
 
-impl AverageDirectionalIndex {
+impl<T: High + Low + Close + Default> AverageDirectionalIndex<T> {
     pub fn new(period: u8) -> Self {
         AverageDirectionalIndex {
             period,
-            firstval: false,
-            secondval: false,
-            ohlc_container: VecDeque::new(),
+            first_val: false,
+            second_val: false,
+            hlc_container: VecDeque::new(),
             adx_container: VecDeque::new(),
             prev_tr: 0.0,
             prev_pdm: 0.0,
@@ -77,30 +50,23 @@ impl AverageDirectionalIndex {
             mdi: 0.0,
             dx: 0.0,
             p_adx: 0.0,
-            // m_pohlc: OHLC {
-            //     high_price: 0.0,
-            //     low_price: 0.0,
-            //     close_price: 0.0,
-            // },
-            previous_high: 0.0,
-            previous_low: 0.0,
-            previous_close: 0.0,
+            p_hlc: T::default(),
             true_range: TrueRange::new(),
         }
     }
 }
 
-impl Default for AverageDirectionalIndex {
+impl<T: High + Low + Close + Default> Default for AverageDirectionalIndex<T> {
     fn default() -> Self {
         Self::new(14)
     }
 }
 
-impl Reset for AverageDirectionalIndex {
+impl<T: High + Low + Close + Default> Reset for AverageDirectionalIndex<T> {
     fn reset(&mut self) {
-        self.firstval = false;
-        self.secondval = false;
-        self.ohlc_container.clear();
+        self.first_val = false;
+        self.second_val = false;
+        self.hlc_container.clear();
         self.adx_container.clear();
         self.prev_tr = 0.0;
         self.prev_pdm = 0.0;
@@ -109,32 +75,22 @@ impl Reset for AverageDirectionalIndex {
         self.mdi = 0.0;
         self.dx = 0.0;
         self.p_adx = 0.0;
-        // self.m_pohlc = OHLC {
-        //     high_price: 0.0,
-        //     low_price: 0.0,
-        //     close_price: 0.0,
-        // };
-        self.previous_high = 0.0;
-        self.previous_low = 0.0;
-        self.previous_close = 0.0;
+        self.p_hlc = T::default();
         self.true_range.reset();
     }
 }
 
-impl<T: High + Low + Close> Next<&T> for AverageDirectionalIndex {
+impl<T: High + Low + Close + Clone> Next<&T> for AverageDirectionalIndex<T> {
     type Output = AverageDirectionalIndexOutput;
 
     fn next(&mut self, input: &T) -> AverageDirectionalIndexOutput {
         let mut dm_plus_result = 0.0;
         let mut dm_minus_result = 0.0;
 
-        if !self.firstval {
-            if self.ohlc_container.len() <= self.period as usize {
-                self.ohlc_container.push_front(OHLC {
-                    high_price: input.high(),
-                    low_price: input.low(),
-                    close_price: input.close(),
-                });
+        if !self.first_val {
+            if self.hlc_container.len() <= self.period as usize {
+                self.hlc_container.push_front(input.clone());
+
                 AverageDirectionalIndexOutput {
                     adx: input.high(),
                     di_plus: dm_plus_result,
@@ -151,9 +107,9 @@ impl<T: High + Low + Close> Next<&T> for AverageDirectionalIndex {
                 // tr_average += tr_result;
 
                 for window in self
-                    .ohlc_container
+                    .hlc_container
                     .iter()
-                    .zip(self.ohlc_container.iter().skip(1))
+                    .zip(self.hlc_container.iter().skip(1))
                 {
                     let (current, next) = window;
 
@@ -167,21 +123,14 @@ impl<T: High + Low + Close> Next<&T> for AverageDirectionalIndex {
                     }
                 }
 
-                self.firstval = true;
+                self.first_val = true;
                 self.prev_tr = tr_average - (tr_average / self.period as f64) + tr_result;
                 self.prev_pdm = dm_plus_result - (dm_plus_result / self.period as f64) + dm_plus;
                 self.prev_mdm = dm_minus_result - (dm_minus_result / self.period as f64) + dm_minus;
 
-                self.ohlc_container.push_front(OHLC {
-                    high_price: input.high(),
-                    low_price: input.low(),
-                    close_price: input.close(),
-                });
-                // self.m_pohlc = *self.m_ohlc_container.front().unwrap();
-                self.previous_high = input.high();
-                self.previous_low = input.low();
-                self.previous_close = input.close();
-
+                self.hlc_container.push_front(input.clone());
+                self.p_hlc = input.clone();
+                
                 AverageDirectionalIndexOutput {
                     adx: self.prev_tr,
                     di_plus: dm_plus_result,
@@ -191,8 +140,8 @@ impl<T: High + Low + Close> Next<&T> for AverageDirectionalIndex {
         } else {
             let tr = self.true_range.next(input);
 
-            let dm_plus = input.high() - self.previous_high;
-            let dm_minus = self.previous_low - input.low();
+            let dm_plus = input.high() - self.p_hlc.high();
+            let dm_minus = self.p_hlc.low() - input.low();
 
             if dm_plus > dm_minus {
                 dm_plus_result += dm_plus;
@@ -204,17 +153,14 @@ impl<T: High + Low + Close> Next<&T> for AverageDirectionalIndex {
             self.prev_pdm = self.prev_pdm - (self.prev_pdm / self.period as f64) + dm_plus_result;
             self.prev_mdm = self.prev_mdm - (self.prev_mdm / self.period as f64) + dm_minus_result;
 
-            // self.m_pohlc = ohlc;
-            self.previous_high = input.high();
-            self.previous_low = input.low();
-            self.previous_close = input.close();
+            self.p_hlc = input.clone();
 
             self.pdi = (self.prev_pdm / self.prev_tr) * 100.0;
             self.mdi = (self.prev_mdm / self.prev_tr) * 100.0;
 
             self.dx = ((self.pdi - self.mdi).abs() / (self.pdi + self.mdi)) * 100.0;
 
-            if !self.secondval && self.firstval {
+            if !self.second_val && self.first_val {
                 if self.adx_container.len() <= self.period as usize {
                     self.adx_container.push_front(self.dx);
                     AverageDirectionalIndexOutput {
@@ -223,7 +169,7 @@ impl<T: High + Low + Close> Next<&T> for AverageDirectionalIndex {
                         di_minus: 0.0,
                     }
                 } else {
-                    self.secondval = true;
+                    self.second_val = true;
                     self.p_adx =
                         self.adx_container.iter().sum::<f64>() / self.adx_container.len() as f64;
 
@@ -255,7 +201,7 @@ mod tests {
 
     #[test]
     fn test_next() {
-        let mut adx = AverageDirectionalIndex::new(14);
+        let mut adx = AverageDirectionalIndex::<Bar>::new(14);
 
         let bar1 = Bar::new().high(10.0).low(5.0).close(8.0);
         let bar2 = Bar::new().high(12.0).low(6.0).close(9.0);
@@ -507,12 +453,7 @@ mod tests {
         println!("low.len() = {}", low.len());
 
         for i in 0..close.len() {
-            let mut ohlc = OHLC {
-                high_price: high[i],
-                low_price: low[i],
-                close_price: close[i],
-            };
-            ohlc_values.push(ohlc);
+            ohlc_values.push(Bar::new().high(high[i]).low(low[i]).close(close[i]));
         }
 
         println!("ohlc_values.len() = {}", ohlc_values.len());
@@ -567,42 +508,12 @@ mod tests {
 
     #[test]
     fn test_default() {
-        AverageDirectionalIndex::default();
+        AverageDirectionalIndex::<Bar>::default();
     }
 
     #[test]
     fn test_display() {
-        let adx = AverageDirectionalIndex::new(14);
+        let adx = AverageDirectionalIndex::<Bar>::new(14);
         assert_eq!(format!("{}", adx), "ADX(14)");
     }
-
-    // #[test]
-    // fn test_reset() {
-    //     let mut obv = OnBalanceVolume::new();
-
-    //     let bar1 = Bar::new().close(1.5).volume(1000.0);
-    //     let bar2 = Bar::new().close(4).volume(2000.0);
-    //     let bar3 = Bar::new().close(8).volume(3000.0);
-
-    //     assert_eq!(obv.next(&bar1), 1000.0);
-    //     assert_eq!(obv.next(&bar2), 3000.0);
-    //     assert_eq!(obv.next(&bar3), 6000.0);
-
-    //     obv.reset();
-
-    //     assert_eq!(obv.next(&bar1), 1000.0);
-    //     assert_eq!(obv.next(&bar2), 3000.0);
-    //     assert_eq!(obv.next(&bar3), 6000.0);
-    // }
-
-    // #[test]
-    // fn test_default() {
-    //     OnBalanceVolume::default();
-    // }
-
-    // #[test]
-    // fn test_display() {
-    //     let obv = OnBalanceVolume::new();
-    //     assert_eq!(format!("{}", obv), "OBV");
-    // }
 }
